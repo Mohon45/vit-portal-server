@@ -1,13 +1,13 @@
 const express = require("express");
 const cors = require("cors");
-const { MongoClient, ServerApiVersion } = require("mongodb");
+const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
+require("dotenv").config();
 const app = express();
 
 port = process.env.port || 5000;
 
 // mongoDB database uri
-const uri =
-  "mongodb+srv://(yourDatabaseUserName):(YourDatabasePassword)@cluster0.m0coh.mongodb.net/?retryWrites=true&w=majority";
+const uri = `mongodb+srv://${process.env.USER_NAME}:${process.env.USER_PASS}@cluster0.m0coh.mongodb.net/?retryWrites=true&w=majority`;
 
 app.use(cors());
 app.use(express.json());
@@ -27,9 +27,42 @@ async function run() {
     const userCollection = db.collection("user");
 
     // all api functionality here
-    app.get("/user", (req, res) => {
+    app.get("/user", async (req, res) => {
       const result = userCollection.find({});
-      res.send(result);
+      const data = await result.toArray();
+      res.json(data);
+    });
+
+    app.post("/add-user", async (req, res) => {
+      const newData = req.body;
+      const result = await userCollection.insertOne(newData);
+      res.json(result);
+    });
+
+    app.get("/user/:id", async (req, res) => {
+      const { id } = req.params;
+      const query = { _id: ObjectId(id) };
+      const cursor = await userCollection.findOne(query);
+      // const result = await cursor.toArray();
+      res.json(cursor);
+    });
+
+    app.put("/user/:id", async (req, res) => {
+      const { id } = req.params;
+      const query = { _id: ObjectId(id) };
+      const result = {
+        $set: req.body,
+      };
+      const cursor = await userCollection.updateOne(query, result);
+      // const result = await cursor.toArray();
+      res.json(cursor);
+    });
+
+    app.delete("/user/:id", async (req, res) => {
+      const { id } = req.params;
+      const query = { _id: ObjectId(id) };
+      const cursor = await userCollection.deleteOne(query);
+      res.json(cursor);
     });
   } catch (err) {
     console.log(err);
@@ -38,7 +71,7 @@ async function run() {
 run();
 
 app.get("/", (req, res) => {
-  res.send("Hello World");
+  res.send("VIT PORTAL Server is Running!");
 });
 
 app.listen(port, () => {
